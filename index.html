@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLC — Natural Language Compiler</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;500;700;800&display=swap');
+
+        :root {
+            --bg: #0a0a0f;
+            --bg2: #0f0f1a;
+            --bg3: #14141f;
+            --surface: #1a1a2e;
+            --surface2: #1f1f35;
+            --border: rgba(100, 80, 220, 0.2);
+            --border2: rgba(100, 80, 220, 0.4);
+            --cyan: #00e5ff;
+            --cyan2: #00b8d4;
+            --purple: #7c6fef;
+            --purple2: #a08bf5;
+            --green: #00e676;
+            --amber: #ffab40;
+            --red: #ff5252;
+            --text: #e8e8f5;
+            --text2: #9090b0;
+            --text3: #6060a0;
+            --mono: 'JetBrains Mono', monospace;
+            --display: 'Syne', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--mono);
+            font-size: 13px;
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .grid-bg {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            background-image:
+                linear-gradient(rgba(100, 80, 220, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(100, 80, 220, 0.04) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .wrap {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 4rem;
+        }
+
+        /* ── Header ── */
+        .header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 2.5rem;
+        }
+
+        .logo {
+            font-family: var(--display);
+            font-size: 36px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, var(--cyan), var(--purple2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+        }
+
+        .logo-sub {
+            font-family: var(--display);
+            font-size: 13px;
+            color: var(--text3);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        .badge-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .badge {
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 3px 8px;
+            border-radius: 4px;
+            border: 1px solid;
+        }
+
+        .badge-cyan {
+            color: var(--cyan);
+            border-color: rgba(0, 229, 255, 0.3);
+            background: rgba(0, 229, 255, 0.06);
+        }
+
+        .badge-purple {
+            color: var(--purple2);
+            border-color: rgba(160, 139, 245, 0.3);
+            background: rgba(160, 139, 245, 0.06);
+        }
+
+        .badge-green {
+            color: var(--green);
+            border-color: rgba(0, 230, 118, 0.3);
+            background: rgba(0, 230, 118, 0.06);
+        }
+
+        .version-box {
+            text-align: right;
+        }
+
+        .version {
+            font-size: 11px;
+            color: var(--text3);
+        }
+
+        .signal-tag {
+            font-family: var(--display);
+            font-size: 11px;
+            color: var(--purple2);
+            margin-top: 4px;
+        }
+
+        /* ── Input Area ── */
+        .input-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-label {
+            font-size: 11px;
+            color: var(--text3);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .input-wrap {
+            position: relative;
+            background: var(--surface);
+            border: 1px solid var(--border2);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+
+        .input-wrap:focus-within {
+            border-color: var(--cyan);
+            box-shadow: 0 0 0 1px rgba(0, 229, 255, 0.15);
+        }
+
+        .prompt-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text);
+            font-family: var(--mono);
+            font-size: 13px;
+            padding: 14px 16px;
+            line-height: 1.5;
+            resize: none;
+            min-height: 80px;
+        }
+
+        .prompt-input::placeholder {
+            color: var(--text3);
+        }
+
+        .input-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-top: 1px solid var(--border);
+            background: var(--bg3);
+        }
+
+        .char-count {
+            font-size: 11px;
+            color: var(--text3);
+        }
+
+        .run-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #5b4de0, #00b8d4);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 20px;
+            font-family: var(--mono);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+
+        .run-btn:hover {
+            opacity: 0.9;
+        }
+
+        .run-btn:active {
+            transform: scale(0.98);
+        }
+
+        .run-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .run-btn .icon {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+        }
+
+        /* ── Example prompts ── */
+        .examples {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+
+        .ex-label {
+            font-size: 11px;
+            color: var(--text3);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 6px;
+            width: 100%;
+        }
+
+        .ex-chip {
+            font-size: 11px;
+            color: var(--text2);
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 5px 10px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .ex-chip:hover {
+            color: var(--cyan);
+            border-color: rgba(0, 229, 255, 0.4);
+            background: rgba(0, 229, 255, 0.05);
+        }
+
+        /* ── Pipeline stages ── */
+        .pipeline {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .stage-pill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            font-size: 11px;
+            background: var(--bg3);
+            transition: all 0.3s;
+            color: var(--text3);
+        }
+
+        .stage-pill .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--text3);
+            transition: all 0.3s;
+        }
+
+        .stage-pill.active {
+            border-color: var(--cyan);
+            color: var(--cyan);
+            background: rgba(0, 229, 255, 0.05);
+        }
+
+        .stage-pill.active .dot {
+            background: var(--cyan);
+            box-shadow: 0 0 6px var(--cyan);
+            animation: pulse 1s infinite;
+        }
+
+        .stage-pill.done {
+            border-color: rgba(0, 230, 118, 0.4);
+            color: var(--green);
+            background: rgba(0, 230, 118, 0.04);
+        }
+
+        .stage-pill.done .dot {
+            background: var(--green);
+        }
+
+        .stage-arrow {
+            color: var(--text3);
+            font-size: 10px;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.4
+            }
+        }
+
+        /* ── Output terminal ── */
+        .terminal {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+            min-height: 160px;
+        }
+
+        .term-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: var(--bg3);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .term-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .term-body {
+            padding: 14px 16px;
+            font-size: 12px;
+            line-height: 1.7;
+            min-height: 130px;
+            overflow-y: auto;
+            max-height: 420px;
+        }
+
+        .t-dim {
+            color: var(--text3);
+        }
+
+        .t-cyan {
+            color: var(--cyan);
+        }
+
+        .t-green {
+            color: var(--green);
+        }
+
+        .t-amber {
+            color: var(--amber);
+        }
+
+        .t-red {
+            color: var(--red);
+        }
+
+        .t-purple {
+            color: var(--purple2);
+        }
+
+        .t-white {
+            color: var(--text);
+        }
+
+        .t-bold {
+            font-weight: 700;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 7px;
+            height: 13px;
+            background: var(--cyan);
+            animation: blink 1s infinite;
+            vertical-align: -2px;
+        }
+
+        @keyframes blink {
+
+            0%,
+            49% {
+                opacity: 1
+            }
+
+            50%,
+            100% {
+                opacity: 0
+            }
+        }
+
+        /* ── Results grid ── */
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 1.5rem;
+        }
+
+        .metric-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 14px;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 0.4s, transform 0.4s;
+        }
+
+        .metric-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .metric-label {
+            font-size: 10px;
+            color: var(--text3);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 6px;
+        }
+
+        .metric-value {
+            font-family: var(--display);
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .metric-value.cyan {
+            color: var(--cyan);
+        }
+
+        .metric-value.green {
+            color: var(--green);
+        }
+
+        .metric-value.purple {
+            color: var(--purple2);
+        }
+
+
+        /* ── Accordion sections ── */
+        .sections {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .section-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(6px);
+            transition: opacity 0.35s, transform 0.35s, border-color 0.2s;
+        }
+
+        .section-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .section-card:hover {
+            border-color: var(--border2);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .section-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .section-title {
+            font-family: var(--display);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .section-count {
+            font-size: 11px;
+            color: var(--text3);
+            margin-left: 8px;
+        }
+
+        .section-chevron {
+            color: var(--text3);
+            font-size: 10px;
+            transition: transform 0.2s;
+        }
+
+        .section-body {
+            display: none;
+            padding: 0 16px 14px;
+        }
+
+        .section-body.open {
+            display: block;
+        }
+
+        .section-chevron.open {
+            transform: rotate(180deg);
+        }
+
+        /* ── Code block ── */
+        .code-block {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 12px 14px;
+            font-size: 11px;
+            line-height: 1.6;
+            overflow-x: auto;
+            color: var(--text2);
+            white-space: pre;
+        }
+
+        /* ── Feature list ── */
+        .feature-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .feat-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text2);
+        }
+
+        .feat-bullet {
+            color: var(--cyan);
+            margin-top: 1px;
+            flex-shrink: 0;
+        }
+
+        .feat-bullet.amber {
+            color: var(--amber);
+        }
+
+        .feat-bullet.green {
+            color: var(--green);
+        }
+
+        .feat-bullet.red {
+            color: var(--red);
+        }
+
+        /* ── Endpoint list ── */
+        .endpoint-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
+        }
+
+        .endpoint-item:last-child {
+            border-bottom: none;
+        }
+
+        .method-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 3px;
+            min-width: 52px;
+            text-align: center;
+        }
+
+        .method-GET {
+            background: rgba(0, 230, 118, 0.1);
+            color: var(--green);
+            border: 1px solid rgba(0, 230, 118, 0.25);
+        }
+
+        .method-POST {
+            background: rgba(0, 229, 255, 0.1);
+            color: var(--cyan);
+            border: 1px solid rgba(0, 229, 255, 0.25);
+        }
+
+        .method-PUT {
+            background: rgba(255, 171, 64, 0.1);
+            color: var(--amber);
+            border: 1px solid rgba(255, 171, 64, 0.25);
+        }
+
+        .method-PATCH {
+            background: rgba(160, 139, 245, 0.1);
+            color: var(--purple2);
+            border: 1px solid rgba(160, 139, 245, 0.25);
+        }
+
+        .method-DELETE {
+            background: rgba(255, 82, 82, 0.1);
+            color: var(--red);
+            border: 1px solid rgba(255, 82, 82, 0.25);
+        }
+
+        .method-WS {
+            background: rgba(160, 139, 245, 0.1);
+            color: var(--purple2);
+            border: 1px solid rgba(160, 139, 245, 0.25);
+        }
+
+        .ep-path {
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .ep-desc {
+            color: var(--text3);
+            margin-left: auto;
+            font-size: 11px;
+            max-width: 260px;
+            text-align: right;
+        }
+
+        .ep-lock {
+            color: var(--amber);
+            font-size: 10px;
+            margin-left: 4px;
+        }
+
+        /* ── Sandbox tests ── */
+        .test-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
+        }
+
+        .test-item:last-child {
+            border-bottom: none;
+        }
+
+        .test-status {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .test-pass {
+            background: rgba(0, 230, 118, 0.15);
+            color: var(--green);
+            border: 1px solid rgba(0, 230, 118, 0.3);
+        }
+
+        .test-fail {
+            background: rgba(255, 82, 82, 0.15);
+            color: var(--red);
+            border: 1px solid rgba(255, 82, 82, 0.3);
+        }
+
+        .test-name {
+            color: var(--text2);
+        }
+
+        .test-ms {
+            color: var(--text3);
+            font-size: 11px;
+            margin-left: auto;
+        }
+
+        /* ── Roadmap ── */
+        .roadmap-item {
+            display: flex;
+            gap: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .roadmap-item:last-child {
+            border-bottom: none;
+        }
+
+        .roadmap-num {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--surface2);
+            border: 1px solid var(--border2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: var(--purple2);
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .roadmap-text {
+            font-size: 12px;
+            color: var(--text2);
+            line-height: 1.5;
+        }
+
+        /* ── Download bar ── */
+        .download-bar {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin-bottom: 1.5rem;
+        }
+
+        .download-bar.visible {
+            display: flex;
+        }
+
+        .dl-info {
+            font-size: 12px;
+            color: var(--text2);
+        }
+
+        .dl-info span {
+            color: var(--cyan);
+        }
+
+        .dl-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: transparent;
+            border: 1px solid var(--border2);
+            color: var(--text2);
+            border-radius: 4px;
+            padding: 6px 14px;
+            font-family: var(--mono);
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .dl-btn:hover {
+            color: var(--cyan);
+            border-color: rgba(0, 229, 255, 0.5);
+            background: rgba(0, 229, 255, 0.04);
+        }
+
+        /* ── Idle state ── */
+        .idle-hint {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 120px;
+        }
+
+        .idle-text {
+            color: var(--text3);
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 1.5px solid var(--text3);
+            border-top-color: var(--cyan);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border2);
+            border-radius: 2px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="grid-bg"></div>
+    <div class="wrap">
+
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-block">
+                <div class="logo">NLC</div>
+                <div class="logo-sub">Natural Language Compiler</div>
+                <div class="badge-row">
+                    <span class="badge badge-cyan">v1.0.0</span>
+                    <span class="badge badge-purple">Pydantic V2</span>
+                    <span class="badge badge-green">Self-Healing</span>
+                </div>
+            </div>
+            <div class="version-box">
+                <div class="version">Gemini 2.5 Flash</div>
+                <div class="signal-tag">@ The AI Signal</div>
+            </div>
+        </div>
+
+        <!-- Example prompts -->
+        <div class="examples">
+            <div class="ex-label">Quick examples</div>
+            <div class="ex-chip" onclick="setPrompt(this)">SaaS task manager with teams &amp; Slack notifications</div>
+            <div class="ex-chip" onclick="setPrompt(this)">Real-time stock tracker with price alerts and portfolio
+                tracking</div>
+            <div class="ex-chip" onclick="setPrompt(this)">E-commerce API with inventory, orders, Stripe payments</div>
+            <div class="ex-chip" onclick="setPrompt(this)">ML pipeline for image classification with REST API</div>
+            <div class="ex-chip" onclick="setPrompt(this)">CLI tool for automated code review using AI</div>
+        </div>
+
+        <!-- Input -->
+        <div class="input-section">
+            <div class="input-label">Application description</div>
+            <div class="input-wrap">
+                <textarea class="prompt-input" id="promptInput"
+                    placeholder="Describe your application in plain English. Messy, vague, or incomplete — the compiler handles it..."
+                    rows="3" oninput="updateCharCount()"></textarea>
+                <div class="input-footer">
+                    <span class="char-count" id="charCount">0 characters</span>
+                    <button class="run-btn" id="runBtn" onclick="runPipeline()">
+                        <div class="icon">▶</div>
+                        Compile
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pipeline stages -->
+        <div class="pipeline" id="pipeline">
+            <div class="stage-pill" id="pill-1">
+                <div class="dot"></div>1. Intent
+            </div>
+            <div class="stage-arrow">›</div>
+            <div class="stage-pill" id="pill-2">
+                <div class="dot"></div>2. Architecture
+            </div>
+            <div class="stage-arrow">›</div>
+            <div class="stage-pill" id="pill-3">
+                <div class="dot"></div>3. Schema
+            </div>
+            <div class="stage-arrow">›</div>
+            <div class="stage-pill" id="pill-4">
+                <div class="dot"></div>4. Refinement
+            </div>
+            <div class="stage-arrow">›</div>
+            <div class="stage-pill" id="pill-5">
+                <div class="dot"></div>5. Sandbox
+            </div>
+        </div>
+
+        <!-- Terminal output -->
+        <div class="terminal">
+            <div class="term-header">
+                <div class="term-dot" style="background:#ff5252"></div>
+                <div class="term-dot" style="background:#ffab40"></div>
+                <div class="term-dot" style="background:#00e676"></div>
+                <span style="font-size:11px;color:var(--text3);margin-left:6px">nlc compiler — output</span>
+            </div>
+            <div class="term-body" id="termBody">
+                <div class="idle-hint">
+                    <div class="idle-text">Enter a prompt and click <strong style="color:var(--cyan)">Compile</strong>
+                        to start the pipeline</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metrics -->
+        <div class="results-grid" id="metricsGrid" style="display:none">
+            <div class="metric-card" id="mc-1">
+                <div class="metric-label">App Name</div>
+                <div class="metric-value cyan" id="mv-name">—</div>
+            </div>
+            <div class="metric-card" id="mc-2">
+                <div class="metric-label">Architecture</div>
+                <div class="metric-value purple" id="mv-arch">—</div>
+            </div>
+            <div class="metric-card" id="mc-3">
+                <div class="metric-label">Complexity</div>
+                <div class="metric-value" id="mv-complex">—</div>
+            </div>
+            <div class="metric-card" id="mc-4">
+                <div class="metric-label">API Endpoints</div>
+                <div class="metric-value cyan" id="mv-endpoints">—</div>
+            </div>
+            <div class="metric-card" id="mc-5">
+                <div class="metric-label">Data Models</div>
+                <div class="metric-value purple" id="mv-models">—</div>
+            </div>
+            <div class="metric-card" id="mc-6">
+                <div class="metric-label">Sandbox</div>
+                <div class="metric-value green" id="mv-sandbox">—</div>
+            </div>
+        </div>
+
+        <!-- Download bar -->
+        <div class="download-bar" id="downloadBar">
+            <div class="dl-info">Blueprint ready — <span id="dlFilename">blueprint.json</span></div>
+            <button class="dl-btn" onclick="downloadBlueprint()">⬇ Download JSON</button>
+        </div>
+
+        <!-- Result sections -->
+        <div class="sections" id="sectionsArea" style="display:none">
+
+            <div class="section-card" id="sec-intent">
+                <div class="section-header" onclick="toggleSection('intent')">
+                    <div class="section-header-left">
+                        <div class="section-icon" style="background:rgba(0,229,255,0.1);color:var(--cyan)">S1</div>
+                        <span class="section-title">Intent Extraction</span>
+                        <span class="section-count" id="sc-intent"></span>
+                    </div>
+                    <div class="section-chevron" id="chev-intent">▼</div>
+                </div>
+                <div class="section-body" id="sb-intent"></div>
+            </div>
+
+            <div class="section-card" id="sec-arch">
+                <div class="section-header" onclick="toggleSection('arch')">
+                    <div class="section-header-left">
+                        <div class="section-icon" style="background:rgba(160,139,245,0.1);color:var(--purple2)">S2</div>
+                        <span class="section-title">Architecture Design</span>
+                        <span class="section-count" id="sc-arch"></span>
+                    </div>
+                    <div class="section-chevron" id="chev-arch">▼</div>
+                </div>
+                <div class="section-body" id="sb-arch"></div>
+            </div>
+
+            <div class="section-card" id="sec-api">
+                <div class="section-header" onclick="toggleSection('api')">
+                    <div class="section-header-left">
+                        <div class="section-icon" style="background:rgba(255,171,64,0.1);color:var(--amber)">S3</div>
+                        <span class="section-title">API Layer</span>
+                        <span class="section-count" id="sc-api"></span>
+                    </div>
+                    <div class="section-chevron" id="chev-api">▼</div>
+                </div>
+                <div class="section-body" id="sb-api"></div>
+            </div>
+
+            <div class="section-card" id="sec-data">
+                <div class="section-header" onclick="toggleSection('data')">
+                    <div class="section-header-left">
+                        <div class="section-icon" style="background:rgba(0,230,118,0.1);color:var(--green)">S3</div>
+                        <span class="section-title">Data Layer</span>
+                        <span class="section-count" id="sc-data"></span>
+                    </div>
+                    <div class="section-chevron" id="chev-data">▼</div>
+                </div>
+                <div class="section-body" id="sb-data"></div>
+            </div>
+
+            <div class="section-card" id="sec-refinement">
+                <div class="section-header" onclick="toggleSection('refinement')">
+                    <div class="section-header-left">
+                        <div class="section-icon" style="background:rgba(160,139,245,0.1);color:var(--purple2)">S4</div>
+                        <span class="section-title">Refinement &amp; Synthesis</span>
+                        <span class="section-count" id="sc-refinement"></span>
+                    </div>
+                    <div class="section-chevron" id="chev-refinement">▼</div>
+                </div>
+                <div class="section-body" id="sb-refinement"></div>
+            </div>
+
+            <div class="section-card" id="sec-sandbox">
+                <div class="section-header" onclick="toggleSection('sandbox')">
+                    <div class="section-header-left">
+                        <div class="section-icon" style="background:rgba(0,230,118,0.1);color:var(--green)">S5</div>
+                        <span class="section-title">Execution Sandbox</span>
+                        <span class="section-count" id="sc-sandbox"></span>
+                    </div>
+                    <div class="section-chevron" id="chev-sandbox">▼</div>
+                </div>
+                <div class="section-body" id="sb-sandbox"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let currentBlueprint = null;
+        let isRunning = false;
+        function setPrompt(el) {
+            document.getElementById('promptInput').value = el.textContent;
+            updateCharCount();
+        }
+
+        function updateCharCount() {
+            const v = document.getElementById('promptInput').value;
+            document.getElementById('charCount').textContent = v.length + ' characters';
+        }
+
+        function log(html) {
+            const b = document.getElementById('termBody');
+            b.innerHTML += html + '\n';
+            b.scrollTop = b.scrollHeight;
+        }
+
+        function clearTerm() {
+            document.getElementById('termBody').innerHTML = '';
+        }
+
+        function setPill(n, state) {
+            const p = document.getElementById('pill-' + n);
+            p.className = 'stage-pill ' + state;
+        }
+
+        function toggleSection(id) {
+            const body = document.getElementById('sb-' + id);
+            const chev = document.getElementById('chev-' + id);
+            const isOpen = body.classList.contains('open');
+            body.classList.toggle('open', !isOpen);
+            chev.classList.toggle('open', !isOpen);
+        }
+
+        function showMetrics(bp) {
+            const grid = document.getElementById('metricsGrid');
+            grid.style.display = 'grid';
+            document.getElementById('mv-name').textContent = bp.metadata.app_name;
+            document.getElementById('mv-arch').textContent = bp.architecture.pattern;
+            const c = bp.metadata.complexity_score;
+            const ce = document.getElementById('mv-complex');
+            ce.textContent = c.toUpperCase();
+            ce.style.color = c === 'low' ? 'var(--green)' : c === 'medium' ? 'var(--amber)' : 'var(--red)';
+            document.getElementById('mv-endpoints').textContent = bp.api_layer.endpoints.length;
+            document.getElementById('mv-models').textContent = bp.data_layer.models.length;
+            document.getElementById('mv-sandbox').textContent = bp.execution_proof.sandbox_passed ? 'PASSED ✓' : 'WARNED';
+
+            ['mc-1', 'mc-2', 'mc-3', 'mc-4', 'mc-5', 'mc-6'].forEach((id, i) => {
+                setTimeout(() => document.getElementById(id).classList.add('visible'), i * 80);
+            });
+        }
+
+        function showSections(bp) {
+            const area = document.getElementById('sectionsArea');
+            area.style.display = 'flex';
+
+            // Intent
+            const ic = bp.intent;
+            document.getElementById('sc-intent').textContent = `${ic.core_features.length} features · ${Math.round(ic.confidence_score * 100)}% confidence`;
+            document.getElementById('sb-intent').innerHTML = `
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Primary Goal</div>
+      <div style="font-size:13px;color:var(--text)">${ic.primary_goal}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em">Core Features</div>
+        <div class="feature-list">${ic.core_features.map(f => `<div class="feat-item"><span class="feat-bullet">›</span>${f}</div>`).join('')}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em">Implicit Requirements</div>
+        <div class="feature-list">${(ic.implicit_requirements || []).map(f => `<div class="feat-item"><span class="feat-bullet amber">›</span>${f}</div>`).join('')}</div>
+      </div>
+    </div>
+    ${ic.ambiguities && ic.ambiguities.length ? `
+    <div style="margin-top:12px">
+      <div style="font-size:11px;color:var(--amber);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em">Ambiguities Flagged</div>
+      <div class="feature-list">${ic.ambiguities.map(a => `<div class="feat-item"><span class="feat-bullet amber">⚠</span>${a}</div>`).join('')}</div>
+    </div>` : ''}
+  `;
+
+            // Architecture
+            const ac = bp.architecture;
+            document.getElementById('sc-arch').textContent = `${ac.components.length} components · ${ac.pattern}`;
+            document.getElementById('sb-arch').innerHTML = `
+    <div style="margin-bottom:12px;padding:10px;background:var(--bg3);border-radius:4px;font-size:12px;color:var(--text2)">${ac.reasoning}</div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+      ${ac.components.map(c => `
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:10px">
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px">${c.name}</div>
+          <div style="font-size:10px;color:var(--cyan);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em">${c.type} · ${c.technology}</div>
+          <div style="font-size:11px;color:var(--text3)">${c.responsibility}</div>
+        </div>
+      `).join('')}
+    </div>
+    <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap">
+      <div><span style="font-size:10px;color:var(--text3)">SECURITY </span><span style="font-size:12px;color:var(--amber)">${ac.security_model}</span></div>
+      <div><span style="font-size:10px;color:var(--text3)">DEPLOY </span><span style="font-size:12px;color:var(--purple2)">${ac.deployment_target}</span></div>
+      <div><span style="font-size:10px;color:var(--text3)">COMMS </span><span style="font-size:12px;color:var(--cyan)">${ac.communication_style}</span></div>
+      ${ac.caching_strategy ? `<div><span style="font-size:10px;color:var(--text3)">CACHE </span><span style="font-size:12px;color:var(--green)">${ac.caching_strategy}</span></div>` : ''}
+    </div>
+  `;
+
+            // API
+            const api = bp.api_layer;
+            document.getElementById('sc-api').textContent = `${api.endpoints.length} endpoints`;
+            document.getElementById('sb-api').innerHTML = `
+    <div style="margin-bottom:8px;font-size:11px;color:var(--text3)">Base: <span style="color:var(--cyan)">${api.base_url}</span> · Auth: <span style="color:var(--amber)">${api.authentication}</span></div>
+    ${api.endpoints.map(ep => `
+      <div class="endpoint-item">
+        <span class="method-badge method-${ep.method}">${ep.method}</span>
+        <span class="ep-path">${ep.path}</span>
+        ${ep.auth_required ? '<span class="ep-lock" title="Auth required">🔒</span>' : ''}
+        <span class="ep-desc">${ep.description}</span>
+      </div>
+    `).join('')}
+  `;
+
+            // Data
+            const dl = bp.data_layer;
+            document.getElementById('sc-data').textContent = `${dl.models.length} models · ${dl.database_type}`;
+            document.getElementById('sb-data').innerHTML = `
+    <div style="margin-bottom:10px;font-size:11px;color:var(--text3)">Database: <span style="color:var(--green)">${dl.database_type}</span> · ORM: <span style="color:var(--cyan)">${dl.orm || 'None'}</span> · Migrations: <span style="color:var(--purple2)">${dl.migration_strategy}</span></div>
+    ${dl.models.map(m => `
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:10px;margin-bottom:8px">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">${m.name}</div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:8px">table: ${m.table_name}</div>
+        <div class="code-block">${m.fields.map(f =>
+                `  ${f.name}: ${f.type}${f.required ? '' : '?'}${f.unique ? ' UNIQUE' : ''}${f.indexed ? ' IDX' : ''}`
+            ).join('\n')}</div>
+        ${m.relationships.length ? `<div style="margin-top:6px;font-size:11px;color:var(--purple2)">${m.relationships.join(' · ')}</div>` : ''}
+      </div>
+    `).join('')}
+  `;
+
+            // Refinement
+            const rf = bp.refinement;
+            document.getElementById('sc-refinement').textContent = `${rf.issues_found.length} issues · ${rf.risk_assessment} risk`;
+            document.getElementById('sb-refinement').innerHTML = `
+    ${rf.issues_found.length ? `
+      <div style="margin-bottom:12px">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Issues Found</div>
+        ${rf.issues_found.map(i => `
+          <div style="background:var(--bg3);border-left:3px solid ${i.severity === 'critical' ? 'var(--red)' : i.severity === 'warning' ? 'var(--amber)' : 'var(--cyan)'};padding:8px 10px;margin-bottom:6px;border-radius:0 4px 4px 0">
+            <div style="font-size:11px;color:${i.severity === 'critical' ? 'var(--red)' : i.severity === 'warning' ? 'var(--amber)' : 'var(--cyan)'};text-transform:uppercase;letter-spacing:0.06em">${i.severity} · ${i.layer}</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:2px">${i.description}</div>
+            <div style="font-size:11px;color:var(--green);margin-top:3px">→ ${i.resolution}</div>
+          </div>
+        `).join('')}
+      </div>` : ''}
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Implementation Roadmap</div>
+      ${rf.implementation_roadmap.map((step, i) => `
+        <div class="roadmap-item">
+          <div class="roadmap-num">${i + 1}</div>
+          <div class="roadmap-text">${step}</div>
+        </div>
+      `).join('')}
+    </div>
+    <div style="display:flex;gap:20px;flex-wrap:wrap">
+      ${rf.estimated_build_time_hours ? `<div><span style="font-size:10px;color:var(--text3)">EST. BUILD </span><span style="font-size:13px;font-weight:600;color:var(--amber)">${rf.estimated_build_time_hours}h</span></div>` : ''}
+      <div><span style="font-size:10px;color:var(--text3)">RISK </span><span style="font-size:13px;font-weight:600;color:${rf.risk_assessment === 'low' ? 'var(--green)' : rf.risk_assessment === 'medium' ? 'var(--amber)' : 'var(--red)'}">${rf.risk_assessment.toUpperCase()}</span></div>
+      <div><span style="font-size:10px;color:var(--text3)">OPTIMIZATIONS </span><span style="font-size:13px;color:var(--cyan)">${rf.optimizations_applied.length}</span></div>
+    </div>
+  `;
+
+            // Sandbox
+            const ep = bp.execution_proof;
+            const passed = ep.test_results.filter(t => t.passed).length;
+            document.getElementById('sc-sandbox').textContent = `${passed}/${ep.test_results.length} tests passed`;
+            document.getElementById('sb-sandbox').innerHTML = `
+    <div style="margin-bottom:10px;font-size:12px">
+      Overall: <span style="color:${ep.sandbox_passed ? 'var(--green)' : 'var(--amber)'};font-weight:600">${ep.sandbox_passed ? 'ALL CRITICAL TESTS PASSED' : 'COMPLETED WITH WARNINGS'}</span>
+    </div>
+    ${ep.test_results.map(t => `
+      <div class="test-item">
+        <div class="test-status ${t.passed ? 'test-pass' : 'test-fail'}">${t.passed ? '✓' : '✗'}</div>
+        <span class="test-name">${t.test_name}</span>
+        ${t.output ? `<span style="font-size:11px;color:var(--text3)">${t.output}</span>` : ''}
+        ${t.error ? `<span style="font-size:11px;color:var(--red)">${t.error.slice(0, 60)}</span>` : ''}
+        <span class="test-ms">${t.duration_ms.toFixed(1)}ms</span>
+      </div>
+    `).join('')}
+  `;
+
+            // Animate all section cards in
+            document.querySelectorAll('.section-card').forEach((el, i) => {
+                setTimeout(() => el.classList.add('visible'), i * 80 + 200);
+            });
+
+            // Auto-open intent section
+            setTimeout(() => toggleSection('intent'), 400);
+        }
+
+        function downloadBlueprint() {
+            if (!currentBlueprint) return;
+            const name = (currentBlueprint.metadata.app_name || 'blueprint').toLowerCase().replace(/\s+/g, '_');
+            const blob = new Blob([JSON.stringify(currentBlueprint, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = name + '_blueprint.json';
+            a.click();
+        }
+
+        async function runPipeline() {
+            if (isRunning) return;
+            const prompt = document.getElementById('promptInput').value.trim();
+            if (!prompt) { alert('Please enter an application description'); return; }
+
+            isRunning = true;
+            currentBlueprint = null;
+            document.getElementById('runBtn').disabled = true;
+
+            // Reset UI
+            clearTerm();
+            document.getElementById('metricsGrid').style.display = 'none';
+            document.getElementById('sectionsArea').style.display = 'none';
+            document.getElementById('downloadBar').classList.remove('visible');
+            document.querySelectorAll('.metric-card').forEach(el => el.classList.remove('visible'));
+            document.querySelectorAll('.section-card').forEach(el => el.classList.remove('visible'));
+            for (let i = 1; i <= 5; i++) setPill(i, '');
+
+            log(`<span class="t-dim">╔══════════════════════════════════════════╗</span>`);
+            log(`<span class="t-dim">║</span>  <span class="t-cyan t-bold">NLC — Natural Language Compiler</span>        <span class="t-dim">║</span>`);
+            log(`<span class="t-dim">╚══════════════════════════════════════════╝</span>`);
+            log('');
+            log(`<span class="t-dim">Input:</span> <span class="t-white">${prompt.slice(0, 80)}${prompt.length > 80 ? '…' : ''}</span>`);
+            log('');
+
+            const stages = [
+                { id: 1, name: 'Intent Extraction', color: 't-cyan' },
+                { id: 2, name: 'Architecture Design', color: 't-purple' },
+                { id: 3, name: 'Schema Block Generation', color: 't-amber' },
+                { id: 4, name: 'Refinement & Cross-Layer Synthesis', color: 't-white' },
+                { id: 5, name: 'Local Virtual Execution Sandbox', 'color': 't-green' },
+            ];
+
+            for (const s of stages) {
+                setPill(s.id, 'active');
+                log(`<span class="${s.color} t-bold">▶ Stage ${s.id}</span>  <span class="t-dim">${s.name}</span>`);
+                log(`  <span class="t-dim">─────────────────────────────────────</span>`);
+            }
+
+            log('');
+            log(`<span class="t-dim">Calling Gemini API via backend...</span> <span class="spinner"></span>`);
+
+            try {
+                const startTime = Date.now();
+
+                const res = await fetch('/compile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt })
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'API error ' + res.status);
+
+                const bp = data;
+
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                currentBlueprint = bp;
+
+                // Mark all stages done
+                clearTerm();
+                log(`<span class="t-dim">╔══════════════════════════════════════════╗</span>`);
+                log(`<span class="t-dim">║</span>  <span class="t-cyan t-bold">NLC — Natural Language Compiler</span>        <span class="t-dim">║</span>`);
+                log(`<span class="t-dim">╚══════════════════════════════════════════╝</span>`);
+                log('');
+
+                for (const s of stages) {
+                    setPill(s.id, 'done');
+                    let detail = '';
+                    if (s.id === 1) detail = `${bp.intent.core_features.length} features · ${Math.round(bp.intent.confidence_score * 100)}% confidence`;
+                    if (s.id === 2) detail = `${bp.architecture.pattern} · ${bp.architecture.components.length} components`;
+                    if (s.id === 3) detail = `${bp.api_layer.endpoints.length} endpoints · ${bp.data_layer.models.length} models · ${bp.dependency_manifest.packages.length} packages`;
+                    if (s.id === 4) detail = `${bp.refinement.issues_found.length} issues · ${bp.refinement.risk_assessment} risk`;
+                    if (s.id === 5) {
+                        const passed = bp.execution_proof.test_results.filter(t => t.passed).length;
+                        detail = `${passed}/${bp.execution_proof.test_results.length} tests passed`;
+                    }
+                    log(`<span class="t-green t-bold">✓</span> <span class="${s.color}">Stage ${s.id}</span>  <span class="t-dim">${s.name}</span>`);
+                    log(`  <span class="t-dim">${detail}</span>`);
+                }
+
+                log('');
+                log(`<span class="t-green t-bold">✓ Compilation complete</span>  <span class="t-dim">${elapsed}s · ${rawText.length.toLocaleString()} chars</span>`);
+                log('');
+
+                const sandboxPassed = bp.execution_proof.sandbox_passed;
+                log(`<span class="t-dim">Sandbox: </span><span class="${sandboxPassed ? 't-green' : 't-amber'} t-bold">${sandboxPassed ? 'ALL CRITICAL TESTS PASSED' : 'COMPLETED WITH WARNINGS'}</span>`);
+
+                showMetrics(bp);
+                showSections(bp);
+
+                const name = (bp.metadata.app_name || 'blueprint').toLowerCase();
+                document.getElementById('dlFilename').textContent = name + '_blueprint.json';
+                document.getElementById('downloadBar').classList.add('visible');
+
+            } catch (err) {
+                clearTerm();
+                for (let i = 1; i <= 5; i++) setPill(i, '');
+                log(`<span class="t-red t-bold">✗ Compilation failed</span>`);
+                log(`<span class="t-dim">Error: </span><span class="t-red">${err.message}</span>`);
+                log('');
+                log(`<span class="t-dim">Make sure the backend is running and GEMINI_API_KEY is set.</span>`);
+            }
+
+            isRunning = false;
+            document.getElementById('runBtn').disabled = false;
+        }
+    </script>
+</body>
+
+</html>
