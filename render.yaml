@@ -2,8 +2,15 @@ services:
   - type: web
     name: nlc-compiler
     runtime: python
+    runtimeVersion: 3.11.7
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn api:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    healthCheckInterval: 300
     envVars:
       - key: GEMINI_API_KEY
-        sync: false   # Set manually in Render dashboard
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: https://nlc-compiler.onrender.com
+      - key: LOG_LEVEL
+        value: INFO

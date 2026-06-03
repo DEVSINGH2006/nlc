@@ -6,7 +6,7 @@ class CompilerConfig:
     run_sandbox: bool = False
     verbose: bool = False
     output_path: str = "output/blueprint.json"
-    model: str = "gemini-2.5-flash"
+    model: str = "gemini-2.0-flash"
     max_tokens: int = 2048
     temperature: float = 0.0
     stage_timeout_seconds: int = 60

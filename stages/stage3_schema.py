@@ -6,13 +6,6 @@ Generates three concrete blueprint layers simultaneously:
   2. Data Layer — database models with fields and relationships
   3. Dependency Manifest — packages, versions, env vars
   4. Directory Structure — full file tree with descriptions
-
-Key behaviors:
-  - All schemas are specific, not generic placeholders
-  - API endpoints include HTTP method, path, auth, rate limits
-  - Data models include field types, constraints, indexes
-  - Dependencies include exact purpose (no mystery packages)
-  - Directory structure includes starter code templates for key files
 """
 
 import json
@@ -57,8 +50,7 @@ STRICT RULES:
 - Return ONLY valid JSON. No markdown, no explanation.
 - Use specific versions (e.g. "2.0.3", not "latest")
 - Every API endpoint must have a clear request and response schema
-- Template code must be syntactically valid Python/JS/etc.
-- At minimum: 3 endpoints, 2 models, 5 packages, 8 file nodes
+- Template code must be syntactically valid Python
 
 Output schema:
 {
@@ -127,23 +119,25 @@ class SchemaGenerator:
         )
 
     def _validate(self, data: dict):
+        # Check all four top-level sections exist
         required = ["api_layer", "data_layer", "dependency_manifest", "directory_structure"]
         for key in required:
             if key not in data:
                 raise ValueError(f"Missing top-level section: '{key}'")
 
+        # Relaxed minimums — Gemini may return fewer items for simple apps
         endpoints = data.get("api_layer", {}).get("endpoints", [])
-        if len(endpoints) < 3:
-            raise ValueError(f"Need at least 3 API endpoints, got {len(endpoints)}")
+        if len(endpoints) < 2:
+            raise ValueError(f"Need at least 2 API endpoints, got {len(endpoints)}")
 
         models = data.get("data_layer", {}).get("models", [])
-        if len(models) < 2:
-            raise ValueError(f"Need at least 2 data models, got {len(models)}")
+        if len(models) < 1:
+            raise ValueError(f"Need at least 1 data model, got {len(models)}")
 
         packages = data.get("dependency_manifest", {}).get("packages", [])
-        if len(packages) < 5:
-            raise ValueError(f"Need at least 5 packages, got {len(packages)}")
+        if len(packages) < 3:
+            raise ValueError(f"Need at least 3 packages, got {len(packages)}")
 
         files = data.get("directory_structure", {}).get("files", [])
-        if len(files) < 8:
-            raise ValueError(f"Need at least 8 file nodes, got {len(files)}")
+        if len(files) < 3:
+            raise ValueError(f"Need at least 3 file nodes, got {len(files)}")

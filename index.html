@@ -1331,6 +1331,7 @@
 
                 const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
                 currentBlueprint = bp;
+                const jsonStr = JSON.stringify(bp, null, 2);
 
                 // Mark all stages done
                 clearTerm();
@@ -1355,7 +1356,7 @@
                 }
 
                 log('');
-                log(`<span class="t-green t-bold">✓ Compilation complete</span>  <span class="t-dim">${elapsed}s · ${rawText.length.toLocaleString()} chars</span>`);
+                log(`<span class="t-green t-bold">✓ Compilation complete</span>  <span class="t-dim">${elapsed}s · ${jsonStr.length.toLocaleString()} chars</span>`);
                 log('');
 
                 const sandboxPassed = bp.execution_proof.sandbox_passed;
