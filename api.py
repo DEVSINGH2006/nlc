@@ -86,21 +86,22 @@ async def health():
     return {"status": "online", "service": "NLC Compiler"}
 
 
+from rich.console import Console
+
 @app.post("/compile")
 async def compile_app(data: CompileRequest):
     """Compile a natural language prompt into an application blueprint."""
     logger.info(f"Compilation started for prompt (length={len(data.prompt)})")
 
-    # Use None for console in API to avoid logging to stdout
     config = CompilerConfig(run_sandbox=True, verbose=False)
-    pipeline = CompilerPipeline(config=config, console=None)
+    console = Console()  # ✅ Use real console
+    pipeline = CompilerPipeline(config=config, console=console)
 
     loop = asyncio.get_event_loop()
     try:
-        # Run the blocking pipeline in a thread so the async event loop stays responsive
         blueprint = await asyncio.wait_for(
             loop.run_in_executor(None, partial(pipeline.run, data.prompt)),
-            timeout=300  # 5 minute hard cap per compile request
+            timeout=300
         )
         logger.info(f"Compilation completed successfully")
         return blueprint.model_dump()
@@ -132,7 +133,6 @@ async def compile_app(data: CompileRequest):
         elif "403" in error_msg or "forbidden" in error_msg.lower():
             error_msg = "Gemini API blocked (network/firewall issue)."
         else:
-            # Truncate very long messages
             error_msg = error_msg[:200]
 
         logger.error(f"Compilation error: {error_msg}")
